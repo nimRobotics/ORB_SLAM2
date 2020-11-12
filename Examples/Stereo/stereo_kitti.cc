@@ -26,6 +26,11 @@
 #include<chrono>
 
 #include<opencv2/core/core.hpp>
+#include<opencv2/imgcodecs/legacy/constants_c.h>
+
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include<System.h>
 

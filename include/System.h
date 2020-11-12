@@ -94,6 +94,10 @@ public:
     // This function must be called before saving the trajectory.
     void Shutdown();
 
+
+    // ---------------Modified -------------
+    void savePyData();
+
     // Save camera trajectory in the TUM RGB-D dataset format.
     // Only for stereo and RGB-D. This method does not work for monocular.
     // Call first Shutdown()
@@ -121,6 +125,14 @@ public:
     int GetTrackingState();
     std::vector<MapPoint*> GetTrackedMapPoints();
     std::vector<cv::KeyPoint> GetTrackedKeyPointsUn();
+
+
+    // 
+    // code to save point cloud https://medium.com/@j.zijlmans/orb-slam-2052515bd84c
+    // 
+
+    //Save the map points (Added)
+    void CreatePCD(const string &filename);
 
 private:
 

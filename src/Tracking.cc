@@ -23,7 +23,7 @@
 
 #include<opencv2/core/core.hpp>
 #include<opencv2/features2d/features2d.hpp>
-
+#include<opencv2/imgproc/imgproc_c.h>
 #include"ORBmatcher.h"
 #include"FrameDrawer.h"
 #include"Converter.h"
@@ -36,6 +36,11 @@
 #include<iostream>
 
 #include<mutex>
+
+
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 
 using namespace std;
@@ -290,6 +295,12 @@ void Tracking::Track()
     }
     else
     {
+
+        // // Modification ******************************************************************
+        // KeyFrame* pKFcur = new KeyFrame(mCurrentFrame,mpMap,mpKeyFrameDB);
+        // float medianDepth2 = pKFcur->ComputeSceneMedianDepthModified(2);
+
+        
         // System is initialized. Track Frame.
         bool bOK;
 
@@ -683,10 +694,21 @@ void Tracking::CreateInitialMapMonocular()
     // Bundle Adjustment
     cout << "New Map created with " << mpMap->MapPointsInMap() << " points" << endl;
 
-    Optimizer::GlobalBundleAdjustemnt(mpMap,20);
+    // Optimizer::GlobalBundleAdjustemnt(mpMap,20);
+
+    // Modified ***********************************************************************
+    // imwrite("Initial.jpg", mInitialFrame); 
+    // imwrite("curret.jpg", mCurrentFrame);
 
     // Set median depth to 1
     float medianDepth = pKFini->ComputeSceneMedianDepth(2);
+
+
+    // // Modification ******************************************************************
+    // KeyFrame* pKFcur = new KeyFrame(mCurrentFrame,mpMap,mpKeyFrameDB);
+    // float medianDepth2 = pKFcur->ComputeSceneMedianDepthModified(2);
+
+
     float invMedianDepth = 1.0f/medianDepth;
 
     if(medianDepth<0 || pKFcur->TrackedMapPoints(1)<100)

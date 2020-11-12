@@ -22,6 +22,7 @@
 #include "Converter.h"
 #include "ORBmatcher.h"
 #include<mutex>
+#include <fstream>
 
 namespace ORB_SLAM2
 {
@@ -643,23 +644,101 @@ float KeyFrame::ComputeSceneMedianDepth(const int q)
 
     vector<float> vDepths;
     vDepths.reserve(N);
+
+    // std::cout<<N;
+
     cv::Mat Rcw2 = Tcw_.row(2).colRange(0,3);
     Rcw2 = Rcw2.t();
     float zcw = Tcw_.at<float>(2,3);
+    // ofstream myOut1("out1.txt");
+    // ofstream myOut2("out2.txt");
+    
     for(int i=0; i<N; i++)
     {
+        
         if(mvpMapPoints[i])
         {
             MapPoint* pMP = mvpMapPoints[i];
             cv::Mat x3Dw = pMP->GetWorldPos();
             float z = Rcw2.dot(x3Dw)+zcw;
             vDepths.push_back(z);
+            // **********************modified******************************
+            // std::cout <<z;
+
+            // std::cout <<"xrDw: "<< x3Dw <<"z: "<< z;
+
+            
+            // myOut1 << z <<'\n';
+            // myOut2 << x3Dw.at<float>(0)<<' '<< x3Dw.at<float>(1)<<' '<< x3Dw.at<float>(2)<<'\n';
+            
         }
+        
     }
 
+    // myOut1.close();
+    // myOut2.close();
+
+    // std::cout <<"vDepths";
+    // std::cout <<vDepths;
     sort(vDepths.begin(),vDepths.end());
 
     return vDepths[(vDepths.size()-1)/q];
 }
+
+
+// float KeyFrame::ComputeSceneMedianDepthModified(const int q)
+// {
+//     vector<MapPoint*> vpMapPoints;
+//     cv::Mat Tcw_;
+//     {
+//         unique_lock<mutex> lock(mMutexFeatures);
+//         unique_lock<mutex> lock2(mMutexPose);
+//         vpMapPoints = mvpMapPoints;
+//         Tcw_ = Tcw.clone();
+//     }
+
+//     vector<float> vDepths;
+//     vDepths.reserve(N);
+
+//     // std::cout<<N;
+
+//     cv::Mat Rcw2 = Tcw_.row(2).colRange(0,3);
+//     Rcw2 = Rcw2.t();
+//     float zcw = Tcw_.at<float>(2,3);
+//     ofstream myOut1("out1.txt",std::ofstream::app);
+//     ofstream myOut2("out2.txt",std::ofstream::app);
+    
+//     for(int i=0; i<N; i++)
+//     {
+        
+//         if(mvpMapPoints[i])
+//         {
+//             MapPoint* pMP = mvpMapPoints[i];
+//             cv::Mat x3Dw = pMP->GetWorldPos();
+//             float z = Rcw2.dot(x3Dw)+zcw;
+//             vDepths.push_back(z);
+//             // **********************modified******************************
+//             // std::cout <<z;
+
+//             // std::cout <<"xrDw: "<< x3Dw <<"z: "<< z;
+
+            
+//             myOut1 << z <<'\n';
+//             myOut2 << x3Dw.at<float>(0)<<' '<< x3Dw.at<float>(1)<<' '<< x3Dw.at<float>(2)<<'\n';
+            
+//         }
+        
+//     }
+
+//     myOut1.close();
+//     myOut2.close();
+
+//     // std::cout <<"vDepths";
+//     // std::cout <<vDepths;
+//     sort(vDepths.begin(),vDepths.end());
+
+//     return vDepths[(vDepths.size()-1)/q];
+// }
+
 
 } //namespace ORB_SLAM

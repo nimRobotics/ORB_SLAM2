@@ -26,6 +26,10 @@
 #include <pangolin/pangolin.h>
 #include <iomanip>
 
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 namespace ORB_SLAM2
 {
 
@@ -262,7 +266,20 @@ cv::Mat System::TrackMonocular(const cv::Mat &im, const double &timestamp)
     unique_lock<mutex> lock2(mMutexState);
     mTrackingState = mpTracker->mState;
     mTrackedMapPoints = mpTracker->mCurrentFrame.mvpMapPoints;
-    mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKeysUn;
+    mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKeysUn;  
+
+    // // ofstream myOut3("keypoints.txt", ios::app);
+    // int mnId = mpTracker->mCurrentFrame.mnId;
+    // for(int i=0; i < mTrackedKeyPointsUn.size(); i++){
+    //     // cout<<mnId<<" *********** " <<' '<< mTrackedKeyPointsUn[i].pt.x <<' '<< mTrackedKeyPointsUn[i].pt.y <<'\n';
+    //     MapPoint* pMP = mTrackedMapPoints[i];
+    //     if(pMP->isBad())
+    //         continue;cv::Mat MPPositions = pMP->GetWorldPos();
+    //     cout<<mnId<<" ----------- "<< setprecision(7)<< MPPositions.at<float>(0) <<' '<<MPPositions.at<float>(1)
+    //     <<' '<< MPPositions.at<float>(2)<<'\n';
+    // }   
+    // // myOut3.close();
+
 
     return Tcw;
 }
@@ -380,6 +397,43 @@ void System::SaveTrajectoryTUM(const string &filename)
 }
 
 
+// ---------------------new modified function to save data
+void System::savePyData()
+{
+    int ni = mpTracker->mCurrentFrame.mnId;
+
+    vector<MapPoint*> sysmappoints = GetTrackedMapPoints();
+    // cout<<"sysmappoints"<<sysmappoints.size()<<'\n' ;
+
+    vector<cv::KeyPoint> xxKeytpoints = GetTrackedKeyPointsUn();
+    // cout<<"KeyPoint"<<xxKeytpoints.size()<<'\n' ;
+
+    ofstream pydata("pydata.txt", ios::app);
+    for(auto i=0; i < sysmappoints.size(); i++){
+
+        if(sysmappoints[i])
+            {
+
+            // cout<<ni<<" *********** "<< xxKeytpoints[i].pt.x <<' '<< xxKeytpoints[i].pt.y <<'\n';
+
+            MapPoint* pMP = sysmappoints[i];
+            cv::Mat MPPositions = pMP->GetWorldPos();
+
+            // cout<<ni<<" ----------- "<< setprecision(7)<< MPPositions.at<float>(0) <<' '<<MPPositions.at<float>(1)
+            // <<' '<< MPPositions.at<float>(2)<<'\n';
+
+            cv::Mat t = mpTracker->mCurrentFrame.GetCameraCenter();
+            // cout<<"camera center" << t.at<float>(0) << " " << t.at<float>(1) << " " << t.at<float>(2)<<'\n';
+
+            pydata<<ni<<' '<< xxKeytpoints[i].pt.x <<' '<< xxKeytpoints[i].pt.y <<' '<<MPPositions.at<float>(0) <<' '<<MPPositions.at<float>(1)
+            <<' '<< MPPositions.at<float>(2) <<' '<< t.at<float>(0) << ' ' << t.at<float>(1) << ' ' << t.at<float>(2)<<'\n'; 
+        }
+    } 
+    pydata.close();  
+}
+
+
+
 void System::SaveKeyFrameTrajectoryTUM(const string &filename)
 {
     cout << endl << "Saving keyframe trajectory to " << filename << " ..." << endl;
@@ -395,23 +449,44 @@ void System::SaveKeyFrameTrajectoryTUM(const string &filename)
     f.open(filename.c_str());
     f << fixed;
 
+    cout<<"##### vpKFs.size(): " << vpKFs.size() <<"######";
+    // ofstream myOut4("mappoints.txt");
     for(size_t i=0; i<vpKFs.size(); i++)
     {
         KeyFrame* pKF = vpKFs[i];
-
-       // pKF->SetPose(pKF->GetPose()*Two);
+        int myId = pKF->mnId;   
 
         if(pKF->isBad())
             continue;
 
-        cv::Mat R = pKF->GetRotation().t();
-        vector<float> q = Converter::toQuaternion(R);
-        cv::Mat t = pKF->GetCameraCenter();
+        cv::Mat Twc = pKF->GetPoseInverse().t();
+        cv::Mat R = pKF->GetRotation().t(); // rotation of camera
+        vector<float> q = Converter::toQuaternion(R); 
+        cv::Mat t = pKF->GetCameraCenter(); // translation of camera
+
+        // vector<cv::KeyPoint> kppointt = pKF->mvKeys;
+        // cout<<"Keypoint dims"<<kppointt.size()<<'\n' ;
+
+        // vector<MapPoint*> zzzz = pKF->mvpMapPoints;
+        // cout<<"KeyMappoint dims"<<zzzz.size()<<'\n' ;
+
+        // set<MapPoint*> mappoints = pKF->GetMapPoints();
+        // cout<<"MapPoint dims"<<mappoints.size()<<'\n' ;
+
+        // for(auto i=mappoints.begin(); i!=mappoints.end();++i){
+        //     MapPoint* pMP = *i;
+        //     cv::Mat MPPositions = pMP->GetWorldPos();
+        //     myOut4 << myId <<' '<< setprecision(7)<< MPPositions.at<float>(0) <<' '<<MPPositions.at<float>(1)
+        //     <<' '<< MPPositions.at<float>(2)<<' '<< t.at<float>(0) <<' '<< t.at<float>(1) <<' '<< t.at<float>(2)
+        //     <<'\n';
+        // }
+
+        // save rotation and translation of the camera points
         f << setprecision(6) << pKF->mTimeStamp << setprecision(7) << " " << t.at<float>(0) << " " << t.at<float>(1) << " " << t.at<float>(2)
-          << " " << q[0] << " " << q[1] << " " << q[2] << " " << q[3] << endl;
+          << " " << q[0] << " " << q[1] << " " << q[2] << " " << q[3] << endl; 
 
     }
-
+    // myOut4.close();
     f.close();
     cout << endl << "trajectory saved!" << endl;
 }
@@ -489,4 +564,53 @@ vector<cv::KeyPoint> System::GetTrackedKeyPointsUn()
     return mTrackedKeyPointsUn;
 }
 
+
+
+// 
+// code to save point cloud https://medium.com/@j.zijlmans/orb-slam-2052515bd84c
+// 
+
+// void System::CreatePCD(const string &filename)
+// {
+//   cout << endl << "Saving map points to " << filename << " ..." << endl;
+//   vector<MapPoint*> vMPs = mpMap->GetAllMapPoints();//create pcd initialization string
+//   std::string begin = std::string("# .PCD v.7 - Point Cloud Data file format\nVERSION .7\n");
+//   // add the fields:
+//   begin += "FIELDS x y z\n";
+//   // add the size (4 for float):
+//   begin += "SIZE 4 4 4\n";
+//   // add the type:
+//   begin += "TYPE F F F\n";
+//   // add the count(ammount of dimension (1 for x)):
+//   begin += "COUNT 1 1 1\n";
+//   // add the width:
+//   int width = vMPs.size();
+//   begin += "WIDTH ";
+//   begin += std::to_string(width);
+//   // add the height:
+//   begin += "\nHEIGHT 1\n";
+//   // add the viewpoint:
+//   begin += "VIEWPOINT 0 0 0 1 0 0 0\n";
+//   // add the amount of points:
+//   begin += "POINTS ";
+//   begin += std::to_string(width);
+//   // add the datatype:
+//   begin += "\nDATA ascii\n";//open the file
+//   ofstream f;
+//   f.open(filename.c_str());
+//   // write the begin
+//   f << begin;//write the points
+//   for(size_t i=0; i<vMPs.size(); i++) {
+        // MapPoint* pMP = vMPs[i];if(pMP->isBad())
+        //     continue;cv::Mat MPPositions = pMP->GetWorldPos();
+        //         f << setprecision(7)<< MPPositions.at<float>(0) << " " << MPPositions.at<float>(1) << " " << MPPositions.at<float>(2) << endl;
+//     }f.close();
+//     cout << endl << "Map Points saved!" << endl;
+// }
+
+
+
 } //namespace ORB_SLAM
+
+
+

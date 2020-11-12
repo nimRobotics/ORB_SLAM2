@@ -25,6 +25,11 @@
 #include<chrono>
 
 #include<opencv2/core/core.hpp>
+#include<opencv2/imgcodecs/legacy/constants_c.h>
+
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include<System.h>
 
@@ -50,7 +55,7 @@ int main(int argc, char **argv)
     int nImages = vstrImageFilenames.size();
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR,true);
+    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR,false);
 
     // Vector for tracking time statistics
     vector<float> vTimesTrack;
@@ -84,6 +89,8 @@ int main(int argc, char **argv)
         // Pass the image to the SLAM system
         SLAM.TrackMonocular(im,tframe);
 
+        
+
 #ifdef COMPILEDWITHC11
         std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
 #else
@@ -91,6 +98,29 @@ int main(int argc, char **argv)
 #endif
 
         double ttrack= std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
+
+
+
+        // //  -------------Modification start---------------------------------------------------
+        // vector<MapPoint*> sysmappoints = SLAM.GetTrackedMapPoints();
+        // cout<<"sysmappoints"<<sysmappoints.size()<<'\n' ;
+
+        // vector<cv::KeyPoint> xxKeytpoints = SLAM.GetTrackedKeyPointsUn();
+        // cout<<"KeyPoint"<<xxKeytpoints.size()<<'\n' ;
+
+        // for(auto i=0; i < xxKeytpoints.size(); i++){
+        //         cout<<ni<<" *********** "<< xxKeytpoints[i].pt.x <<' '<< xxKeytpoints[i].pt.y <<'\n';
+
+        //         MapPoint* pMP = sysmappoints[i];
+        //         cv::Mat MPPositions = pMP->GetWorldPos();
+        //         cout<<ni<<" *********** "<< setprecision(7)<< MPPositions.at<float>(0) <<' '<<MPPositions.at<float>(1)
+        //         <<' '<< MPPositions.at<float>(2)<<'\n';
+        //     }   
+
+
+
+        //  -------------Modification end---------------------------------------------------
+
 
         vTimesTrack[ni]=ttrack;
 
@@ -103,6 +133,10 @@ int main(int argc, char **argv)
 
         if(ttrack<T)
             usleep((T-ttrack)*1e6);
+
+
+        // -----------modified to save pydata
+        SLAM.savePyData();
     }
 
     // Stop all threads
@@ -121,6 +155,15 @@ int main(int argc, char **argv)
 
     // Save camera trajectory
     SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
+
+
+    // 
+    // code to save point cloud https://medium.com/@j.zijlmans/orb-slam-2052515bd84c
+    // 
+    
+    // save the pointcloud
+    // SLAM.CreatePCD("pointcloud.pcd");
+    
 
     return 0;
 }
